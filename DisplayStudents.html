@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>All Students - Helwan University</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #00703c;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 20px;
+      font-size: 16px;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    section {
+      padding: 30px;
+      max-width: 900px;
+      margin: 30px auto;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      font-size: 26px;
+      margin-bottom: 20px;
+      color: #00703c;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 12px;
+      text-align: left;
+    }
+    th {
+      background-color: #00703c;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    footer {
+      margin-top: 50px;
+      background-color: #ddd;
+      text-align: center;
+      padding: 15px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">Helwan University</div>
+    <nav>
+      <a href="DisplayStudents.html">All Students</a>
+      <a href="encryption.html">Encryption</a>
+      <a href="decryption.html">Decryption</a>
+    </nav>
+  </header>
+
+  <section>
+    <h1>All Students</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Ahmed Mohamed</td>
+          <td>ahmed.mohamed@example.com</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const token = "Bearer " + localStorage.getItem("Token");
+      const apiUrl = "https://nb-project.runasp.net/api/Student/Get-Information-Student";
+  
+      fetch(apiUrl, {
+        method: "GET",
+        headers: {
+          "Authorization": token,
+          "Content-Type": "application/json"
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("API request failed with status " + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        const tbody = document.querySelector("tbody");
+        tbody.innerHTML = ""; // نفضي الجدول الأول
+  
+        if (data && data.length > 0) {
+          data.forEach(student => {
+            const row = document.createElement("tr");
+  
+            const nameCell = document.createElement("td");
+            nameCell.textContent = student.name;
+  
+            const emailCell = document.createElement("td");
+            emailCell.textContent = student.email;
+  
+            row.appendChild(nameCell);
+            row.appendChild(emailCell);
+  
+            tbody.appendChild(row);
+          });
+        } else {
+          const row = document.createElement("tr");
+          const noDataCell = document.createElement("td");
+          noDataCell.colSpan = 2;
+          noDataCell.textContent = "No students available.";
+          row.appendChild(noDataCell);
+          tbody.appendChild(row);
+        }
+      })
+      .catch(error => {
+        console.error("Error loading student data:", error);
+      });
+    });
+  </script>
+  
+  
+</body>
+</html>

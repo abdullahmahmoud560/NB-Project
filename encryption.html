@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>API Data Table</title>
+  <style>
+     header {
+      background-color: #00703c;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin-left: 20px;
+      font-size: 16px;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f0f0;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #00703c;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 30px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    section {
+      padding: 30px;
+      max-width: 900px;
+      margin: 30px auto;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      font-size: 26px;
+      margin-bottom: 20px;
+      color: #00703c;
+    }
+    form {
+      margin-bottom: 20px;
+    }
+    input[type="text"] {
+      padding: 8px;
+      font-size: 16px;
+      width: 100%;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #00703c;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #005a2c;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+  border: 1px solid #ccc;
+  padding: 12px;
+  text-align: left;
+  word-wrap: break-word;       /* مهم للكلمات الطويلة */
+  word-break: break-all;       /* يكسر حتى الكلمات الطويلة جداً */
+  white-space: normal;         /* يخلي النص يلف */
+  max-width: 400px;            /* حد أقصى للعرض (حسب احتياجك) */
+}
+
+    th {
+      background-color: #00703c;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">Helwan University</div>
+    <nav>
+      <a href="DisplayStudents.html">All Students</a>
+      <a href="encryption.html">Encryption</a>
+      <a href="decryption.html">Decryption</a>
+    </nav>
+  </header>
+
+  <section>
+    <h1>Send String to API and View Response</h1>
+    
+    <!-- Form for input -->
+    <form id="dataForm">
+      <input type="text" id="userInput" placeholder="Enter a string" required />
+      <button type="submit">Send to API</button>
+    </form>
+    
+    <!-- Table to display API response -->
+    <table id="responseTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Data rows will be inserted here -->
+      </tbody>
+    </table>
+    
+  </section>
+
+  <script>
+   document.getElementById("dataForm").addEventListener("submit", function(event) {
+  event.preventDefault(); // Prevent form submission
+
+  const userInput = document.getElementById("userInput").value;
+  const apiUrl = "https://nb-project.runasp.net/api/Student/Encryption"; // رابط الـ API
+
+  // الحصول على التوكن من localStorage
+  const token = "Bearer " + localStorage.getItem("Token");
+
+  // إعداد الطلب API مع البيانات والتوكن
+  fetch(apiUrl, {
+    method: "POST", // إذا كان الـ API يطلب POST أو GET حسب الحاجة
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": token // إضافة التوكن في الهيدر
+    },
+    body: JSON.stringify({ Text: userInput }) // إرسال المدخلات إلى الـ API
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error("API request failed with status " + response.status);
+    }
+    
+    // محاولة قراءة الاستجابة كنص عادي
+    return response.text(); // قراءة الاستجابة كنص
+  })
+  .then(text => {
+    try {
+      const tbody = document.querySelector("#responseTable tbody");
+      tbody.innerHTML = ""; // نفضي الجدول أولاً
+
+      // مثال لتقسيم النص إلى كائنات إذا كان مفترض أن النص هو JSON داخل نص مشفر
+      try {
+        const data = JSON.parse(text); // محاولة تحويل النص إلى JSON
+        if (data.message == "Encryption Successfully" && typeof data === "object") {
+          Object.entries(data).forEach(([key, value]) => {
+            const row = document.createElement("tr");
+
+            const keyCell = document.createElement("td");
+            keyCell.textContent = key;
+
+            const valueCell = document.createElement("td");
+            valueCell.textContent = value;
+
+            row.appendChild(keyCell);
+            row.appendChild(valueCell);
+
+            tbody.appendChild(row);
+          });
+
+          // إظهار الجدول
+          document.getElementById("responseTable").style.display = "table";
+        }
+      } catch (jsonError) {
+        console.error("Error parsing response as JSON:", jsonError);
+        alert("Response is not valid JSON: " + text); // عرض النص الخام
+      }
+
+    } catch (error) {
+      console.error("Error processing response:", error);
+    }
+  })
+  .catch(error => {
+    console.error("Error loading data:", error);
+  });
+});
+
+  </script>
+  
+
+</body>
+</html>
