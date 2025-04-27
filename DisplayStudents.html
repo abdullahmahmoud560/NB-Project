@@ -92,8 +92,8 @@
       </thead>
       <tbody>
         <tr>
-          <td>Ahmed Mohamed</td>
-          <td>ahmed.mohamed@example.com</td>
+          <td></td>
+          <td></td>
         </tr>
       </tbody>
     </table>
@@ -101,55 +101,113 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
-      const token = "Bearer " + localStorage.getItem("Token");
-      const apiUrl = "https://nb-project.runasp.net/api/Student/Get-Information-Student";
-  
-      fetch(apiUrl, {
-        method: "GET",
-        headers: {
-          "Authorization": token,
-          "Content-Type": "application/json"
+        async function loadStudentData() {
+            try {
+                const token = "Bearer " + localStorage.getItem("accessToken");
+                const apiUrl = "https://nb-project.runasp.net/api/Student/Get-Information-Student";
+    
+                let response = await fetch(apiUrl, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": token,
+                        "Content-Type": "application/json"
+                    }
+                });
+                console.log(response);
+
+                // لو التوكن مش شغال (401)
+                if (response.status === 401) {    
+                    const refreshToken = localStorage.getItem('refreshToken');
+                    if (!refreshToken) {
+                        window.location.href = 'index.html'; // رجع المستخدم للوجن
+                        return;
+                    }
+    
+                    const refreshed = await refreshAccessToken();
+    
+                    if (refreshed) {
+                        // بعد ما تجدده، جرب تنفذ الريكوست من جديد
+                        await loadStudentData();
+                        return;
+                    } else {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                }
+    
+                // هنا بقى لو الريسبونس كويس
+                let data = null;
+                if (response.status !== 204) {
+                    data = await response.json();
+                }
+    
+                const tbody = document.querySelector("tbody");
+                tbody.innerHTML = ""; // فضي الجدول
+    
+                if (data && data.length > 0) {
+                    data.forEach(student => {
+                        const row = document.createElement("tr");
+    
+                        const nameCell = document.createElement("td");
+                        nameCell.textContent = student.name;
+    
+                        const emailCell = document.createElement("td");
+                        emailCell.textContent = student.email;
+    
+                        row.appendChild(nameCell);
+                        row.appendChild(emailCell);
+    
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    const row = document.createElement("tr");
+                    const noDataCell = document.createElement("td");
+                    noDataCell.colSpan = 2;
+                    noDataCell.textContent = "No students available.";
+                    row.appendChild(noDataCell);
+                    tbody.appendChild(row);
+                }
+    
+            } catch (error) {
+                console.error("Error loading student data:", error);
+            }
         }
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error("API request failed with status " + response.status);
+    
+        async function refreshAccessToken() {
+            try {
+                const refreshToken = localStorage.getItem('refreshToken');
+                if (!refreshToken) {
+                    throw new Error('No refresh token found');
+                }
+    
+                const refreshResponse = await fetch('https://nb-project.runasp.net/api/Signin/RefreshToken', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ refreshToken: refreshToken })
+                });
+    
+                if (refreshResponse.status === 200) {
+                    const data = await refreshResponse.json();
+                    localStorage.setItem('accessToken', data.accessToken);
+                    console.log("Access token refreshed!");
+                    return true;
+                } else {
+                    console.error("Failed to refresh access token.", refreshResponse.status);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error refreshing token:', error);
+                return false;
+            }
         }
-        return response.json();
-      })
-      .then(data => {
-        const tbody = document.querySelector("tbody");
-        tbody.innerHTML = ""; // نفضي الجدول الأول
-  
-        if (data && data.length > 0) {
-          data.forEach(student => {
-            const row = document.createElement("tr");
-  
-            const nameCell = document.createElement("td");
-            nameCell.textContent = student.name;
-  
-            const emailCell = document.createElement("td");
-            emailCell.textContent = student.email;
-  
-            row.appendChild(nameCell);
-            row.appendChild(emailCell);
-  
-            tbody.appendChild(row);
-          });
-        } else {
-          const row = document.createElement("tr");
-          const noDataCell = document.createElement("td");
-          noDataCell.colSpan = 2;
-          noDataCell.textContent = "No students available.";
-          row.appendChild(noDataCell);
-          tbody.appendChild(row);
-        }
-      })
-      .catch(error => {
-        console.error("Error loading student data:", error);
-      });
+    
+        // شغل الكود أول ما الصفحة تجهز
+        loadStudentData();
     });
-  </script>
+    </script>
+    
   
   
 </body>

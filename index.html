@@ -358,7 +358,9 @@
             
             const data = await response.json();
             if (data.message == "Sign in successful") {
-              localStorage.setItem("Token",data.token);
+              localStorage.setItem("accessToken",data.accessToken);
+              localStorage.setItem("refreshToken",data.refreshToken);
+
               window.location.href = 'Home.html'; // Example redirection
             } else {
               // Handle login failure (e.g., show error message)

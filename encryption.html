@@ -139,75 +139,114 @@
     </table>
     
   </section>
-
   <script>
-   document.getElementById("dataForm").addEventListener("submit", function(event) {
-  event.preventDefault(); // Prevent form submission
-
-  const userInput = document.getElementById("userInput").value;
-  const apiUrl = "https://nb-project.runasp.net/api/Student/Encryption"; // رابط الـ API
-
-  // الحصول على التوكن من localStorage
-  const token = "Bearer " + localStorage.getItem("Token");
-
-  // إعداد الطلب API مع البيانات والتوكن
-  fetch(apiUrl, {
-    method: "POST", // إذا كان الـ API يطلب POST أو GET حسب الحاجة
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": token // إضافة التوكن في الهيدر
-    },
-    body: JSON.stringify({ Text: userInput }) // إرسال المدخلات إلى الـ API
-  })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error("API request failed with status " + response.status);
-    }
-    
-    // محاولة قراءة الاستجابة كنص عادي
-    return response.text(); // قراءة الاستجابة كنص
-  })
-  .then(text => {
-    try {
-      const tbody = document.querySelector("#responseTable tbody");
-      tbody.innerHTML = ""; // نفضي الجدول أولاً
-
-      // مثال لتقسيم النص إلى كائنات إذا كان مفترض أن النص هو JSON داخل نص مشفر
+    document.getElementById("dataForm").addEventListener("submit", async function(event) {
+      event.preventDefault(); // Prevent form submission
+  
+      const userInput = document.getElementById("userInput").value;
+      const apiUrl = "https://nb-project.runasp.net/api/Student/Encryption"; // رابط الـ API
+  
+      // الحصول على التوكن من localStorage
+      const token = "Bearer " + localStorage.getItem("accessToken");
+  
+      // إعداد الطلب API مع البيانات والتوكن
       try {
-        const data = JSON.parse(text); // محاولة تحويل النص إلى JSON
-        if (data.message == "Encryption Successfully" && typeof data === "object") {
-          Object.entries(data).forEach(([key, value]) => {
-            const row = document.createElement("tr");
-
-            const keyCell = document.createElement("td");
-            keyCell.textContent = key;
-
-            const valueCell = document.createElement("td");
-            valueCell.textContent = value;
-
-            row.appendChild(keyCell);
-            row.appendChild(valueCell);
-
-            tbody.appendChild(row);
-          });
-
-          // إظهار الجدول
-          document.getElementById("responseTable").style.display = "table";
+        const response = await fetch(apiUrl, {
+          method: "POST", // إذا كان الـ API يطلب POST أو GET حسب الحاجة
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": token // إضافة التوكن في الهيدر
+          },
+          body: JSON.stringify({ Text: userInput }) // إرسال المدخلات إلى الـ API
+        });
+  
+        if (response.status === 401) {    
+          const refreshToken = localStorage.getItem('refreshToken');
+          if (!refreshToken) {
+            window.location.href = 'index.html'; // رجع المستخدم للوجن
+            return;
+          }
+  
+          const refreshed = await refreshAccessToken();
+  
+          if (refreshed) {
+            // بعد ما تجدده، جرب تنفذ الريكوست من جديد
+            await loadStudentData();
+            return;
+          } else {
+            window.location.href = 'index.html';
+            return;
+          }
         }
-      } catch (jsonError) {
-        console.error("Error parsing response as JSON:", jsonError);
-        alert("Response is not valid JSON: " + text); // عرض النص الخام
+  
+        // محاولة قراءة الاستجابة كنص عادي
+        const text = await response.text(); // قراءة الاستجابة كنص
+  
+        try {
+          const tbody = document.querySelector("#responseTable tbody");
+          tbody.innerHTML = ""; // نفضي الجدول أولاً
+  
+          // مثال لتقسيم النص إلى كائنات إذا كان مفترض أن النص هو JSON داخل نص مشفر
+          const data = JSON.parse(text);
+  
+          if (data.message == "Encryption Successfully" && typeof data === "object") {
+            Object.entries(data).forEach(([key, value]) => {
+              const row = document.createElement("tr");
+  
+              const keyCell = document.createElement("td");
+              keyCell.textContent = key;
+  
+              const valueCell = document.createElement("td");
+              valueCell.textContent = value;
+  
+              row.appendChild(keyCell);
+              row.appendChild(valueCell);
+  
+              tbody.appendChild(row);
+            });
+  
+            // إظهار الجدول
+            document.getElementById("responseTable").style.display = "table";
+          }
+        } catch (jsonError) {
+          console.error("Error parsing response as JSON:", jsonError);
+          alert("Response is not valid JSON: " + text); // عرض النص الخام
+        }
+  
+      } catch (error) {
+        console.error("Error loading data:", error);
       }
-
-    } catch (error) {
-      console.error("Error processing response:", error);
+    });
+  
+    async function refreshAccessToken() {
+      try {
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (!refreshToken) {
+          throw new Error('No refresh token found');
+        }
+  
+        const refreshResponse = await fetch('https://nb-project.runasp.net/api/Signin/RefreshToken', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ refreshToken: refreshToken })
+        });
+  
+        if (refreshResponse.status === 200) {
+          const data = await refreshResponse.json();
+          localStorage.setItem('accessToken', data.accessToken);
+          console.log("Access token refreshed!");
+          return true;
+        } else {
+          console.error("Failed to refresh access token.", refreshResponse.status);
+          return false;
+        }
+      } catch (error) {
+        console.error('Error refreshing token:', error);
+        return false;
+      }
     }
-  })
-  .catch(error => {
-    console.error("Error loading data:", error);
-  });
-});
-
   </script>
   
 
